@@ -46,7 +46,7 @@ def onReceive(packet, interface):
                         station_callsign,
                         [telem['lat'], telem['lon'], telem['alt']],
                         )
-                print("uploaded")
+                print("uploaded packet from balloon to sondehub!")
 
     except Exception as e:
         print('Masking exception:')
