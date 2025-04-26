@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import meshtastic
-import meshtastic.tcp_interface
+import meshtastic.tcp_interface`
 from pubsub import pub
 import time
 import datetime
@@ -10,9 +10,6 @@ import traceback
 import sondehub
 
 from sondehub.amateur import Uploader
-print("Opening connection to Sondehub...", end='')
-uploader = Uploader("KD9PRC Meshtastic MQTT gateway", software_name="KD9PRC Mestastic MQTT gateway", software_version="0.0.1") # fixme
-print("Done.")
 
 # Received: {'from': 530607104, 'to': 131047185, 'decoded': {'portnum': 'TEXT_MESSAGE_APP', 'payload': b'G', 'bitfield': 1, 'text': 'G'}, 'id': 103172025, 'rxTime': 1745376860, 'rxSnr': 7.0, 'hopLimit': 7, 'wantAck': True, 'rxRssi': -14, 'hopStart': 7, 'publicKey': 'Jn89K4tEsX2fKYy+NUu3J8EJ/gjXjxP1SQCHm3A8Wms=', 'pkiEncrypted': True, 'raw': from: 530607104, to: 131047185, [...], 'fromId': '!1fa06c00', 'toId': '!07cf9f11'}
 
@@ -28,6 +25,12 @@ def onReceive(packet, interface):
                 print("got mtf1 packet!")
                 # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
                 telem = json.loads(payload[5:])
+                snr = rssi = None
+                try:
+                    snr = packet['rx_snr']
+                    rssi = packet['rx_rssi']
+                except KeyError as e:
+                    print("no snr/rssi in packet...weird.")
                 uploader.add_telemetry(
                     "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
                     datetime.datetime.utcfromtimestamp(packet['rxTime']),
@@ -38,13 +41,11 @@ def onReceive(packet, interface):
                     uploader_callsign=station_callsign,
                     snr=snr,
                     rssi=rssi,
-                    sats=telem['sat'],
                     )
                 if have_local_gps:
                     uploader.upload_station_position(
                         station_callsign,
                         [telem['lat'], telem['lon'], telem['alt']],
-                        uploader_radio=station_radio
                         )
                 print("uploaded")
 
@@ -54,10 +55,16 @@ def onReceive(packet, interface):
 
 pub.subscribe(onReceive, "meshtastic.receive")
 interface = meshtastic.tcp_interface.TCPInterface(hostname='172.16.17.103')
+print("Opening connection to Sondehub...", end='')
+my = interface.getMyNodeInfo()
+station_callsign=my['user']['id']
+uploader = Uploader(station_callsign, software_name="KD9PRC Mestastic local uploader", software_version="0.0.1")
+print("Done.")
 
 have_local_gps = False
 while True:
     my = interface.getMyNodeInfo()
+    print(f"my:{my}")
     if my is not None and 'position' in my:
         pos = my['position']
         if {'altitude', 'latitude', 'longitude'}.issubset(pos):
@@ -68,6 +75,10 @@ while True:
             }
             print(f"Have local node GPS position: {position['alt']} {position['lat']} {position['lon']}")
         have_local_gps = True
+        uploader.upload_station_position(
+            station_callsign,
+            [position['lat'], position['lon'], position['alt']],
+            )
     else:
         have_local_gps = False
     time.sleep(30)
