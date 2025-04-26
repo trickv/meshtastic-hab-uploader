@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 import meshtastic
-import meshtastic.tcp_interface`
+import meshtastic.tcp_interface, meshtastic.ble_interface, meshtastic.serial_interface
 from pubsub import pub
 import time
 import datetime
@@ -17,7 +17,6 @@ position = None
 
 def onReceive(packet, interface):
     global position
-    print(f"Received: {packet}")
     try:
         if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
             payload = packet['decoded']['payload'].decode('utf-8')
@@ -54,17 +53,20 @@ def onReceive(packet, interface):
         traceback.print_exc()
 
 pub.subscribe(onReceive, "meshtastic.receive")
+################ You will need to customize this! ########################
 interface = meshtastic.tcp_interface.TCPInterface(hostname='172.16.17.103')
+#interface = meshtastic.ble_interface.BLEInterface('Redd_db3d')
+#interface = meshtastic.serial_interface.SerialInterface('/dev/ttyACM0')
+################ ok that's all :) ########################################
 print("Opening connection to Sondehub...", end='')
 my = interface.getMyNodeInfo()
 station_callsign=my['user']['id']
 uploader = Uploader(station_callsign, software_name="KD9PRC Mestastic local uploader", software_version="0.0.1")
-print("Done.")
+print("Done. Check it out: https://amateur.sondehub.org/")
 
 have_local_gps = False
 while True:
     my = interface.getMyNodeInfo()
-    print(f"my:{my}")
     if my is not None and 'position' in my:
         pos = my['position']
         if {'altitude', 'latitude', 'longitude'}.issubset(pos):
