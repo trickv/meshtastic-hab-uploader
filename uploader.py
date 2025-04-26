@@ -21,32 +21,32 @@ position = None
 def onReceive(packet, interface):
     global position
     print(f"Received: {packet}")
-    if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
-        payload = packet['decoded']['payload'].decode('utf-8')
-        if payload[0:3] == "mtf1:"
-            print("got mtf1 packet!")
-            # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
-            telem = json.loads(payload)
-            uploader.add_telemetry(
-                "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
-                datetime.datetime.utcfromtimestamp(packet['rxTime']),
-                telem['lat'],
-                telem['lon'],
-                telem['alt'],
-                modulation='Meshtastic Rx',
-                uploader_callsign=station_callsign,
-                snr=snr,
-                rssi=rssi,
-                sats=telem['sat'],
-                )
-            if have_local_gps:
-                uploader.upload_station_position(
-                    station_callsign,
-                    [telem['lat'], telem['lon'], telem['alt']],
-                    uploader_radio=station_radio
+    try:
+        if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
+            payload = packet['decoded']['payload'].decode('utf-8')
+            if payload[0:3] == "mtf1:":
+                print("got mtf1 packet!")
+                # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
+                telem = json.loads(payload)
+                uploader.add_telemetry(
+                    "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
+                    datetime.datetime.utcfromtimestamp(packet['rxTime']),
+                    telem['lat'],
+                    telem['lon'],
+                    telem['alt'],
+                    modulation='Meshtastic Rx',
+                    uploader_callsign=station_callsign,
+                    snr=snr,
+                    rssi=rssi,
+                    sats=telem['sat'],
                     )
-            print("uploaded")
-
+                if have_local_gps:
+                    uploader.upload_station_position(
+                        station_callsign,
+                        [telem['lat'], telem['lon'], telem['alt']],
+                        uploader_radio=station_radio
+                        )
+                print("uploaded")
 
     except Exception as e:
         print('Masking exception:')
@@ -58,7 +58,7 @@ interface = meshtastic.tcp_interface.TCPInterface(hostname='172.16.17.103')
 have_local_gps = False
 while True:
     my = interface.getMyNodeInfo()
-    if 'position' in my:
+    if my is not None and 'position' in my:
         pos = my['position']
         if {'altitude', 'latitude', 'longitude'}.issubset(pos):
             position = {
