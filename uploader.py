@@ -27,7 +27,7 @@ def onReceive(packet, interface):
             if payload[0:5] == "mtf1:":
                 print("got mtf1 packet!")
                 # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
-                telem = json.loads(payload)
+                telem = json.loads(payload[5:])
                 uploader.add_telemetry(
                     "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
                     datetime.datetime.utcfromtimestamp(packet['rxTime']),
