@@ -39,11 +39,12 @@ def onReceive(packet, interface):
                 rssi=rssi,
                 sats=telem['sat'],
                 )
-            uploader.upload_station_position(
-                station_callsign,
-                [telem['lat'], telem['lon'], telem['alt']],
-                uploader_radio=station_radio
-                )
+            if have_local_gps:
+                uploader.upload_station_position(
+                    station_callsign,
+                    [telem['lat'], telem['lon'], telem['alt']],
+                    uploader_radio=station_radio
+                    )
             print("uploaded")
 
 
@@ -54,16 +55,21 @@ def onReceive(packet, interface):
 pub.subscribe(onReceive, "meshtastic.receive")
 interface = meshtastic.tcp_interface.TCPInterface(hostname='172.16.17.103')
 
+have_local_gps = False
 while True:
     my = interface.getMyNodeInfo()
-    pos = my['position']
-    if {'altitude', 'latitude', 'longitude'}.issubset(pos):
-        position = {
-            'alt': my['position']['altitude'],
-            'lat': my['position']['latitude'],
-            'lon': my['position']['longitude'],
-        }
-        print(f"Have local node GPS position: {position['alt']} {position['lat']} {position['lon']}")
+    if 'position' in my:
+        pos = my['position']
+        if {'altitude', 'latitude', 'longitude'}.issubset(pos):
+            position = {
+                'alt': my['position']['altitude'],
+                'lat': my['position']['latitude'],
+                'lon': my['position']['longitude'],
+            }
+            print(f"Have local node GPS position: {position['alt']} {position['lat']} {position['lon']}")
+        have_local_gps = True
+    else:
+        have_local_gps = False
     time.sleep(30)
 
 
