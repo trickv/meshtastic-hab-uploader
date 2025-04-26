@@ -5,11 +5,14 @@ import meshtastic.tcp_interface
 from pubsub import pub
 import time
 import datetime
-import math
 import json
 import traceback
+import sondehub
 
-
+from sondehub.amateur import Uploader
+print("Opening connection to Sondehub...", end='')
+uploader = Uploader("KD9PRC Meshtastic MQTT gateway", software_name="KD9PRC Mestastic MQTT gateway", software_version="0.0.1") # fixme
+print("Done.")
 
 # Received: {'from': 530607104, 'to': 131047185, 'decoded': {'portnum': 'TEXT_MESSAGE_APP', 'payload': b'G', 'bitfield': 1, 'text': 'G'}, 'id': 103172025, 'rxTime': 1745376860, 'rxSnr': 7.0, 'hopLimit': 7, 'wantAck': True, 'rxRssi': -14, 'hopStart': 7, 'publicKey': 'Jn89K4tEsX2fKYy+NUu3J8EJ/gjXjxP1SQCHm3A8Wms=', 'pkiEncrypted': True, 'raw': from: 530607104, to: 131047185, [...], 'fromId': '!1fa06c00', 'toId': '!07cf9f11'}
 
@@ -21,6 +24,29 @@ def onReceive(packet, interface):
     if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
         payload = packet['decoded']['payload'].decode('utf-8')
         if payload[0:3] == "mtf1:"
+            print("got mtf1 packet!")
+            # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
+            telem = json.loads(payload)
+            uploader.add_telemetry(
+                station_name,
+                datetime.datetime.fromtimestamp(packet['rxTime']),
+                telem['lat'],
+                telem['lon'],
+                telem['alt'],
+                modulation='Meshtastic',
+                uploader_callsign=station_callsign,
+                snr=snr,
+                rssi=rssi,
+                sats=telem['sat'],
+                )
+            uploader.upload_station_position(
+                station_callsign,
+                [telem['lat'], telem['lon'], telem['alt']],
+                uploader_radio=station_radio
+                )
+            print("uploaded")
+
+
     except Exception as e:
         print('Masking exception:')
         traceback.print_exc()
