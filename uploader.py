@@ -33,6 +33,9 @@ def onReceive(packet, interface):
                     rssi = packet['rx_rssi']
                 except KeyError as e:
                     print("no snr/rssi in packet...weird.")
+                if not {'lat', 'lon', 'alt', 'gpstime'}.issubset(telem):
+                    print("Balloon doesn't have a GPS fix - not good.")
+                    return
                 uploader.add_telemetry(
                     "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
                     datetime.datetime.utcfromtimestamp(telem['gpstime']),
