@@ -46,6 +46,11 @@ def onReceive(packet, interface):
                     uploader_callsign=station_callsign,
                     snr=snr,
                     rssi=rssi,
+                    extra_fields={
+                        'chUtil': telem['chUtil'],
+                        'airUtilTx': telem['airUtilTx'],
+                        'uptime': telem['uptime'],
+                    }
                     )
                 if have_local_gps:
                     uploader.upload_station_position(
