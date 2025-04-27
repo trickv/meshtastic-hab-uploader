@@ -23,6 +23,7 @@ def onReceive(packet, interface):
     try:
         if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
             payload = packet['decoded']['payload'].decode('utf-8')
+            print(f"text message from {packet['fromId']} to {packet['toId']}: {payload}")
             if payload[0:5] == "mtf1:":
                 print("got mtf1 packet!")
                 # mtf:{"chUtil": 4.68, "airUtilTx": 4.68, "uptime": 6625, "alt": 255, "lat": 41.8808, "lon": -88.0771}
