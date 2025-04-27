@@ -14,9 +14,12 @@ from sondehub.amateur import Uploader
 # Received: {'from': 530607104, 'to': 131047185, 'decoded': {'portnum': 'TEXT_MESSAGE_APP', 'payload': b'G', 'bitfield': 1, 'text': 'G'}, 'id': 103172025, 'rxTime': 1745376860, 'rxSnr': 7.0, 'hopLimit': 7, 'wantAck': True, 'rxRssi': -14, 'hopStart': 7, 'publicKey': 'Jn89K4tEsX2fKYy+NUu3J8EJ/gjXjxP1SQCHm3A8Wms=', 'pkiEncrypted': True, 'raw': from: 530607104, to: 131047185, [...], 'fromId': '!1fa06c00', 'toId': '!07cf9f11'}
 
 position = None
+balloon_position = None
 
 def onReceive(packet, interface):
     global position
+    global balloon_position
+    #print(packet)
     try:
         if packet['decoded']['portnum'] == 'TEXT_MESSAGE_APP':
             payload = packet['decoded']['payload'].decode('utf-8')
@@ -32,7 +35,7 @@ def onReceive(packet, interface):
                     print("no snr/rssi in packet...weird.")
                 uploader.add_telemetry(
                     "KD9PRC-MT", # TODO: derive payload name from the node, not just hardcode to what i want...but node name comes from nodeInfo...which we might not have yet...i am tired and lazy...and wondering if there's a limit to how long i can keep writing this comment...
-                    datetime.datetime.utcfromtimestamp(packet['rxTime']),
+                    datetime.datetime.utcfromtimestamp(telem['gpstime']),
                     telem['lat'],
                     telem['lon'],
                     telem['alt'],
@@ -46,7 +49,7 @@ def onReceive(packet, interface):
                         station_callsign,
                         [telem['lat'], telem['lon'], telem['alt']],
                         )
-                print("uploaded packet from balloon to sondehub!")
+                print(f"uploaded packet from balloon to sondehub! {telem['lat']} {telem['lon']} {telem['alt']}")
 
     except Exception as e:
         print('Masking exception:')
